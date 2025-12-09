@@ -318,7 +318,9 @@ class LevelSampler:
             ord = (-jnp.where(mask, sampler["scores"], -jnp.inf)).argsort()
             k = prioritization_params["k"]
             topk_mask = jnp.empty_like(ord).at[ord].set(jnp.arange(self.capacity) < jnp.minimum(sampler["size"], k))
-            w_s = jax.nn.softmax(sampler["scores"], where=topk_mask, initial=0)
+            # Mask scores to -inf for non-topk, then softmax (compatible with older JAX)
+            masked_scores = jnp.where(topk_mask, sampler["scores"], -jnp.inf)
+            w_s = jax.nn.softmax(masked_scores)
         else:
             raise Exception(f"\"{self.prioritization}\" not a valid prioritization.")
         
